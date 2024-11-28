@@ -29,3 +29,7 @@ This implementation uses a [super_mario_levels](https://hub.docker.com/r/rafaelj
     ```sh
     ./run_mario_env.sh
     ```
+3. This approach does not run the jupyter-lab server by default, you can run it if needed:
+    ```sh
+    jupyter-lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
+    ```
