@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  mario-gpt:
+    container_name: mario-gpt
+    image: rafaeljose/super_mario_levels:v0
+    command: >
+      jupyter-lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
+    tty: true
+    privileged: true
+    network_mode: "host"
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
+      - ../:/mario-gpt
+    working_dir: /mario-gpt
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XAUTHORITY=/tmp/.docker.xauth
