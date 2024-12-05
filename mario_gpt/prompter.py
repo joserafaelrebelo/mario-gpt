@@ -103,7 +103,7 @@ class Prompter:
         return np.sum([flattened_level.count(char) for char in ["r", "R", "k", "K"]])
 
     def count_goombas(self, flattened_level: str) -> int:
-        return flattened_level.count("E") + flattened_level.count("B")
+        return flattened_level.count("g") + flattened_level.count("G")
 
     def count_powerups(self, flattened_level: str) -> int:
         return np.sum([flattened_level.count(char) for char in ["1", "?", "U"]])
