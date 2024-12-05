@@ -96,21 +96,6 @@ def convert_level_to_png(
         "B": Image.open(f"{tiles_dir}/cannon_top.png"),
         "b": Image.open(f"{tiles_dir}/cannon_bottom.png"),
         "F": Image.open(f"{tiles_dir}/flying_koopa.png"),
-
-        "C": Image.open(f"{tiles_dir}/icon_interrogation.png"), # Coin Brick Block
-        "U": Image.open(f"{tiles_dir}/icon_interrogation.png"), # Mushroom Brick Block
-        "!": Image.open(f"{tiles_dir}/icon_interrogation.png"), # Question Block (changed from Q)
-        "1": Image.open(f"{tiles_dir}/icon_interrogation.png"), # Invisible 1 up block
-        "2": Image.open(f"{tiles_dir}/icon_interrogation.png"), # Invisible coin block
-        "g": Image.open(f"{tiles_dir}/smb-enemy.png"),
-        "G": Image.open(f"{tiles_dir}/icon_interrogation.png"),
-        "k": Image.open(f"{tiles_dir}/icon_interrogation.png"),
-        "K": Image.open(f"{tiles_dir}/icon_interrogation.png"),
-        "r": Image.open(f"{tiles_dir}/icon_interrogation.png"),
-        "R": Image.open(f"{tiles_dir}/icon_interrogation.png"),
-        "y": Image.open(f"{tiles_dir}/icon_interrogation.png"),
-        "t": Image.open(f"{tiles_dir}/smb-tube-lower-right.png"),
-        "T": Image.open(f"{tiles_dir}/smb-tube-top-right.png"),
     }
     levels = [list(s) for s in level]
     arr = np.array(levels)
@@ -144,51 +129,20 @@ def load_level(filename: str) -> List[str]:
 
 
 TOKENS = [
-    "-", # Sky
-    "X", # Ground
-    "S", # Brick
-    "?", # Special Question Block 
-    "Q", # Question Block
-    "o", # Coin
-    "E", # Enemy
-    "B", # Bullet Billington head
-    "b", # Bullet Billington body
-    "<", # Top left pipe
-    ">", # Top right pipe
-    "[", # Left pipe
-    "]", # Right pipe
-    "x", # Path
-    "Y", # Black Square
-    "N", # N
-]
-
-NEW_TOKENS = [
-    "-", # Sky
-    "o", # Coin
-
-    "X", # Ground
-    "S", # Brick
-    'C', # Coin Brick Block
-    'U', # Mushroom Brick Block
-    "?", # Special Question Block 
-    "!", # Question Block (changed from Q)
-    '1', # Invisible 1 up block
-    '2', # Invisible coin block
-
-    'g', # Goomba (Removed E)
-    'G', # Winged Goomba
-    'k', # Green Koopa
-    'K', # Winged Green Koopa
-    'r', # Red Koopa
-    'R', # Winged Red Koopa
-    'y', # Spiky
-
-    "B", # Bullet Billington head
-    "b", # Bullet Billington body
-    "T", # Pipe with Plant (Removed pipe coords)
-    "t", # Empty Pipe
-
-    "x", # Path
-    "Y", # Black Square
-    "N", # N
+    "-",
+    "X",
+    "S",
+    "?",
+    "Q",
+    "o",
+    "E",
+    "<",
+    ">",
+    "[",
+    "]",
+    "x",
+    "Y",
+    "N",
+    "B",
+    "b",
 ]
