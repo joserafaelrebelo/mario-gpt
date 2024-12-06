@@ -86,6 +86,8 @@ def convert_level_to_png(
         "E": Image.open(f"{tiles_dir}/smb-enemy.png"),
         "<": Image.open(f"{tiles_dir}/smb-tube-top-left.png"),
         ">": Image.open(f"{tiles_dir}/smb-tube-top-right.png"),
+        "(": Image.open(f"{tiles_dir}/smb-tube-top-left.png"),
+        ")": Image.open(f"{tiles_dir}/smb-tube-top-right.png"),
         "[": Image.open(f"{tiles_dir}/smb-tube-lower-left.png"),
         "]": Image.open(f"{tiles_dir}/smb-tube-lower-right.png"),
         "x": Image.open(f"{tiles_dir}/smb-path.png"),  # self-created
@@ -185,10 +187,10 @@ NEW_TOKENS = [
 
     "B", # Bullet Billington head
     "b", # Bullet Billington body
-    "T", # Pipe with Plant (Removed pipe coords)
-    "t", # Empty Pipe
     "<", # Top left pipe
     ">", # Top right pipe
+    "(", # Top left pipe with plant
+    ")", # Top right pipe with plant
     "[", # Left pipe
     "]", # Right pipe
 
@@ -196,3 +198,6 @@ NEW_TOKENS = [
     "Y", # Black Square
     "N", # N
 ]
+
+# "T", # Pipe with Plant (Removed pipe coords)
+# "t", # Empty Pipe

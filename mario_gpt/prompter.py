@@ -91,7 +91,7 @@ class Prompter:
         return thresholds, keywords
 
     def count_pipes(self, flattened_level: str) -> int:
-        return flattened_level.count("<>")
+        return flattened_level.count("<>") + flattened_level.count("()")
 
     def count_enemies(self, flattened_level: str) -> int:
         return np.sum([flattened_level.count(char) for char in ["E", "B", "k", "K", "g", "G", "r", "R", "y"]])
