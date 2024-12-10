@@ -10,8 +10,8 @@ pt = os.path.dirname(os.path.realpath(__file__))
 TILE_DIR = os.path.join(pt, "data", "tiles")
 
 
-def trim_level(level):
-    mod = level.shape[-1] % 14
+def trim_level(level, height: int = 14):
+    mod = level.shape[-1] % height
     if mod > 0:
         return level[:, :-mod]
     return level
@@ -25,14 +25,14 @@ def join_list_of_list(str_lists):
     return ["".join(s) for s in str_lists]
 
 
-def view_level(level_tokens, tokenizer, flatten=False):
+def view_level(level_tokens, tokenizer, height: int = 14, flatten=False):
     if flatten:
         return tokenizer.batch_decode(level_tokens.detach().cpu().squeeze())
     str_list = tokenizer.decode(level_tokens.detach().cpu()).replace("<mask>", "Y")
-    str_list = [str_list[i : i + 14] for i in range(0, len(str_list), 14)]
+    str_list = [str_list[i : i + height] for i in range(0, len(str_list), height)]
     for i in range(len(str_list)):
         length = len(str_list[i])
-        diff = 14 - length
+        diff = height - length
         if diff > 0:
             str_list[i] = str_list[i] + "Y" * diff
     return join_list_of_list(np.array(characterize(str_list)).T)
@@ -119,12 +119,12 @@ def convert_level_to_png(
     return char_array_to_image(arr, chars2pngs, target_size), arr, level
 
 
-def generate_timelapse(level_tensor, mario_lm, interval: int = 1):
+def generate_timelapse(level_tensor, mario_lm, height: int = 14, interval: int = 1):
     images = []
-    full_size = math.ceil(level_tensor.shape[-1] / 14)
+    full_size = math.ceil(level_tensor.shape[-1] / height)
     for i in range(1, level_tensor.shape[-1], interval):
         img = convert_level_to_png(
-            level_tensor[:i], mario_lm.tokenizer, target_size=(14, full_size)
+            level_tensor[:i], mario_lm.tokenizer, target_size=(height, full_size)
         )[0]
         images.append(img)
     return images

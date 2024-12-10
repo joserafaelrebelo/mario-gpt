@@ -83,10 +83,11 @@ class SampleOutput:
         sample_predictions: torch.Tensor,
         tokenizer,
         prompter: Optional[Prompter] = None,
+        height: int = 14,
     ) -> Union[SampleOutput, List[SampleOutput]]:
-        level_tensor = trim_level(level).squeeze().detach().cpu()
+        level_tensor = trim_level(level, height=height).squeeze().detach().cpu()
         sample_predictions_tensor = (
-            trim_level(sample_predictions).squeeze().detach().cpu()
+            trim_level(sample_predictions, height=height).squeeze().detach().cpu()
         )
 
         if len(level_tensor.shape) == 1:
@@ -184,6 +185,7 @@ class GPTSampler:
         num_steps: int = 1,
         encoder_hidden_states: torch.Tensor = None,
         return_tensor: bool = False,
+        height: int = 14,
     ):
         self.mario_lm.eval()
         context_len = self.context_len - 28
@@ -230,7 +232,7 @@ class GPTSampler:
                 for i in bar:
                     inp = out_tensor * 1
                     if len(out_tensor.shape) > 0 and out_tensor.shape[-1] > context_len:
-                        diff = inp.shape[-1] % 14  # height of mario level
+                        diff = inp.shape[-1] % height  # height of mario level
                         ctx = context_len + diff
                         inp = inp[:, -ctx:] * 1
                     next_tokens, encoder_hidden_states = self.step(
@@ -251,6 +253,7 @@ class GPTSampler:
             out_tensor[:, -num_steps:],
             self.mario_lm.tokenizer,
             self.mario_lm.prompter,
+            height=height
         )
         self.mario_lm.train()
         if return_tensor:
@@ -269,6 +272,7 @@ class BertSampler:
         top_k: int = 16,
         context_len: int = 448,
         mask_proportion: float = 0.16,
+        height: int = 14,
     ):
         self.mario_lm = mario_lm
         self.temperature = temperature
@@ -283,7 +287,8 @@ class BertSampler:
         self.context_len = context_len
         self.mask_proportion = mask_proportion
         self.mask_portion = int(self.context_len * self.mask_proportion)
-        self.mask_portion = self.mask_portion - self.mask_portion % 14 + 14
+        self.mask_portion = self.mask_portion - self.mask_portion % height + height
+        self.height = height
 
     @property
     def device(self) -> torch.device:
@@ -294,7 +299,7 @@ class BertSampler:
         end_idx = mask_indices[-1]
 
         if input_ids.shape[-1] <= self.context_len:
-            clipped = input_ids.shape[-1] % 14
+            clipped = input_ids.shape[-1] % self.height
             input_ids = input_ids[:clipped]
 
         portion = (self.context_len - self.mask_portion) / 2
@@ -313,6 +318,7 @@ class BertSampler:
         seed: Union[torch.Tensor, SampleOutput],
         mask: torch.Tensor,
         return_tensor: bool = False,
+        height: int = 14,
     ):
         self.mario_lm.eval()
         mask_indices = mask.nonzero()
@@ -363,6 +369,7 @@ class BertSampler:
             tokens,
             self.mario_lm.tokenizer,
             self.mario_lm.prompter,
+            height=height
         )
         self.mario_lm.train()
         if return_tensor:

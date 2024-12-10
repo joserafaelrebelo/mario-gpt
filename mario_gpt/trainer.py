@@ -56,6 +56,7 @@ class MarioGPTTrainer:
     ):
         self.mario_lm = mario_lm
         self.train_dataset = train_dataset
+        self.dataset_height = train_dataset.height
 
         self.config = config
 
@@ -222,6 +223,7 @@ class MarioGPTTrainer:
                                 num_steps=1400,
                                 temperature=2.0,
                                 use_tqdm=True,
+                                height=self.dataset_height
                             )
                             draw = ImageDraw.Draw(out.img)
                             draw.text((0, 0), prompt, (0, 0, 0))
