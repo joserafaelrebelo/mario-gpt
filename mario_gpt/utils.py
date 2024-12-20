@@ -71,9 +71,10 @@ def convert_level_to_png(
     tokenizer=None,
     tiles_dir: str = None,
     target_size=None,
+    height: int = 14,
 ):
     if isinstance(level, torch.Tensor):
-        level = view_level(level, tokenizer)
+        level = view_level(level, tokenizer, height=height)
     if tiles_dir is None:
         tiles_dir = TILE_DIR
     chars2pngs = {
