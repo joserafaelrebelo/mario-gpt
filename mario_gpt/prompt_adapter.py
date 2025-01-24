@@ -1,18 +1,22 @@
 from transformers import pipeline
 from mario_gpt.instructions import instructions  
 from mario_gpt.prompter import Prompter
+import torch
 import random
 
 
 class PromptAdapter:
-    def __init__(self, model_name: str = "meta-llama/Llama-3.1-8B-Instruct", prompter: Prompter = None):
+    def __init__(self, llm, prompter: Prompter = None):
         """
         Initialize the PromptAdapter class with a specified LLM model.
 
         :param model_name: The name of the language model to use for adaptation.
         :param prompter: An optional instance of the Prompter class.
         """
-        self.llm = pipeline("text-generation", model=model_name)
+        if not llm:
+            raise ValueError("A valid LLM instance must be provided.")
+        self.llm = llm
+
         self.prompter_base = prompter or Prompter()  
 
         self.prefixes = [
