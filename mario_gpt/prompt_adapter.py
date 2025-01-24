@@ -72,11 +72,11 @@ class PromptAdapter:
         combined_prompts = f"{random.choice(self.prefixes)} {base_prompt}"
 
         prompt_for_adapter = self.prompt_adapter_instruction(selected_instruction, combined_prompts)
-        generated_text = self.llm(prompt_for_adapter, max_length=100, num_return_sequences=1)
+        generated_text = self.llm(prompt_for_adapter, max_length=1028, num_return_sequences=1)
 
         return generated_text[0]["generated_text"].strip()
 
-    def new_prompter(self, level: str) -> str:
+    def new_prompter(self, level: list) -> str:
         """
         Generates a new prompter output based on the given level.
 
@@ -86,7 +86,13 @@ class PromptAdapter:
         if not hasattr(self.prompter_base, "__call__"):
             raise AttributeError("The Prompter instance must be callable.")
         
-        prompt_base, _, _, _ = self.prompter_base(level=level)  # Generate the structured prompt
+        tokenized_level = self.prompter_base.level_tokenizer(level, return_tensors="pt")
+
+        level_tensor = tokenized_level['input_ids']
+        flattened_tensor = level_tensor.view(-1)
+        
+        prompt_base, _, _, _ = self.prompter_base(level=flattened_tensor)  # Generate the structured prompt
+        print(prompt_base)
         new_prompt = self.adapt_prompt(prompt_base)
 
         return new_prompt
