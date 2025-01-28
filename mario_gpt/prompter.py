@@ -145,16 +145,16 @@ class Prompter:
         count = self.count_koopas(flattened_level)
         keyword = f"{count}"
         if not self.use_raw_counts:
-            thresholds, keywords = self.block_thresholds
+            thresholds, keywords = self.koopa_thresholds
             threshold = np.digitize(count, thresholds, right=True)
             keyword = keywords[threshold]
         return f"{keyword} koopas", keyword
 
     def goomba_prompt(self, flattened_level: str, level: str) -> str:
-        count = self.count_blocks(flattened_level)
+        count = self.count_goombas(flattened_level)
         keyword = f"{count}"
         if not self.use_raw_counts:
-            thresholds, keywords = self.block_thresholds
+            thresholds, keywords = self.goomba_thresholds
             threshold = np.digitize(count, thresholds, right=True)
             keyword = keywords[threshold]
         return f"{keyword} goombas", keyword
@@ -163,7 +163,7 @@ class Prompter:
         count = self.count_powerups(flattened_level)
         keyword = f"{count}"
         if not self.use_raw_counts:
-            thresholds, keywords = self.block_thresholds
+            thresholds, keywords = self.powerup_thresholds
             threshold = np.digitize(count, thresholds, right=True)
             keyword = keywords[threshold]
         return f"{keyword} powerups", keyword
@@ -172,7 +172,7 @@ class Prompter:
         count = self.count_coins(flattened_level)
         keyword = f"{count}"
         if not self.use_raw_counts:
-            thresholds, keywords = self.block_thresholds
+            thresholds, keywords = self.coin_thresholds
             threshold = np.digitize(count, thresholds, right=True)
             keyword = keywords[threshold]
         return f"{keyword} coins", keyword
