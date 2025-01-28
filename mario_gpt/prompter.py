@@ -179,9 +179,7 @@ class Prompter:
             elevation_keyword = random.choice(["low", "high"])
             prompt_dict["elevation_prompt"] = f"{elevation_keyword} elevation"
 
-        # Combine all prompts
         prompt = ", ".join(prompt_dict.values())
-        # hidden = self.output_hidden(prompt, device=device)
-        # return prompt, hidden, prompt_dict, str_level
-        return prompt, prompt_dict, str_level
+        hidden = self.output_hidden(prompt, device=device)
+        return prompt, hidden, prompt_dict, str_level
 
