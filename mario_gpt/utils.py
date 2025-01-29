@@ -37,6 +37,9 @@ def view_level(level_tokens, tokenizer, flatten=False):
             str_list[i] = str_list[i] + "Y" * diff
     return join_list_of_list(np.array(characterize(str_list)).T)
 
+def view_level_flat(level_tokens, tokenizer):
+    str_list = tokenizer.decode(level_tokens.detach().cpu()).replace("<mask>", "Y")
+    return str_list
 
 def is_flying_enemy(array, row, col):
     num_rows = array.shape[0]
