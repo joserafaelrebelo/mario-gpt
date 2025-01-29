@@ -45,12 +45,28 @@ class MarioDataset(Dataset):
         self.height = height
         self.sample_all_indices = sample_all_indices
 
-        # Initialize tokenizer
+        def get_training_corpus():
+            for root, _, files in os.walk(folder_path):
+                for file in files:
+                    if file.endswith(".txt"):
+                        with open(os.path.join(root, file), "r") as f:
+                            yield list("".join(f.readlines()))
+
         if tokenizer is None:
             tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
-        self.tokenizer = tokenizer
 
-        # Process all text files in the folder structure
+        if getattr(tokenizer, "train_new_from_iterator", None) is not None:
+            self.tokenizer = tokenizer.train_new_from_iterator(
+                get_training_corpus(), 52000
+            )
+        elif getattr(tokenizer, "train_from_iterator", None) is not None:
+            self.tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer)
+            self.tokenizer = self.tokenizer.train_new_from_iterator(
+                get_training_corpus(), 52000
+            )
+        else:
+            self.tokenizer = tokenizer
+
         self.data = []
         self.character_set = set()
         current_id = 0
@@ -60,7 +76,7 @@ class MarioDataset(Dataset):
                 if file.endswith(".txt"):
                     file_path = os.path.join(root, file)
                     with open(file_path, "r") as f:
-                        lines = f.readlines()[1:]  # Skip the first line
+                        lines = f.readlines()[1:]
                         level_string = "".join(lines)
 
                     self.character_set.update(set(level_string) - {"\n"})
@@ -83,6 +99,17 @@ class MarioDataset(Dataset):
                     current_id += len(input_ids) - context_len
 
         self.vocab_size = len(self.character_set)
+
+        all_input_ids = torch.cat([data["input_ids"] for data in self.data])
+        self.unique_tokens, self.unique_counts = all_input_ids.unique(return_counts=True)
+        self.weighted_unique_counts = (
+            1.0 / self.unique_counts / torch.sum(self.unique_counts)
+        )
+
+        self.token_dict = {}
+        string_tokens = list(self.tokenizer.decode(self.unique_tokens))
+        for int_token, string_token in zip(self.unique_tokens, string_tokens):
+            self.token_dict[string_token] = int_token
 
     def convert_level_to_tensor(self, level: List[str]):
         str_arr = flip_and_transpose(np.array(characterize(level)))
