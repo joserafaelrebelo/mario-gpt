@@ -77,13 +77,25 @@ class Prompter:
             
         chars = self.entity_chars[entity_type]
         return sum(flattened_level.count(char) for char in chars)
+    def count_entities(self, flattened_level: str, entity_type: str) -> int:
+        if entity_type not in self.entity_chars:
+            raise ValueError(f"Unknown entity type: {entity_type}")
+            
+        chars = self.entity_chars[entity_type]
+        return sum(flattened_level.count(char) for char in chars)
 
     def generate_prompt(self, entity_type: str, flattened_level: str, level: str = None) -> Tuple[str, str]:
         if entity_type == "elevation":
             return self.elevation_prompt(flattened_level, level)
             
         count = self.count_entities(flattened_level, entity_type)
+    def generate_prompt(self, entity_type: str, flattened_level: str, level: str = None) -> Tuple[str, str]:
+        if entity_type == "elevation":
+            return self.elevation_prompt(flattened_level, level)
+            
+        count = self.count_entities(flattened_level, entity_type)
         keyword = f"{count}"
+        
         
         if not self.use_raw_counts:
             thresholds, keywords = self.get_thresholds(entity_type)
@@ -93,13 +105,21 @@ class Prompter:
         # Handle special plural cases
         plural = "enemies" if entity_type == "enemy" else f"{entity_type}s"
         return f"{keyword} {plural}", keyword
+            
+        # Handle special plural cases
+        plural = "enemies" if entity_type == "enemy" else f"{entity_type}s"
+        return f"{keyword} {plural}", keyword
 
     def elevation_prompt(self, flattened_level: str, level: str):
+        top_levels = level[:6]
         top_levels = level[:6]
         for t in top_levels:
             if "X" in t or "<" in t or ">" in t:
                 return "high elevation", "high"
         return "low elevation", "low"
+
+    def _flatten_level(self, string_level: List[str]) -> str:
+        return "".join(string_level)
 
     def _flatten_level(self, string_level: List[str]) -> str:
         return "".join(string_level)
@@ -148,12 +168,23 @@ class Prompter:
         device: torch.device = torch.device("cpu")
         prompt_dict = {}
         
+        prompt_dict = {}
+        
         if not sample_prompt:
             if level is None:
                 raise ValueError("Level must be provided if sample_prompt is not true!")
             str_level = view_level(level, self.level_tokenizer)
             flattened_level = self._flatten_level(str_level)
             device = level.device
+
+            # Generate prompts for all entity types
+            for entity_type in self.entity_chars.keys():
+                prompt, keyword = self.generate_prompt(entity_type, flattened_level, str_level)
+                prompt_dict[entity_type] = prompt
+
+            # Handle elevation separately
+            elevation_prompt, elevation_keyword = self.elevation_prompt(flattened_level, str_level)
+            prompt_dict["elevation_prompt"] = elevation_prompt
 
             # Generate prompts for all entity types
             for entity_type in self.entity_chars.keys():

@@ -107,10 +107,10 @@ class MarioGPTTrainer:
     def sample_from_dataset(
         self, dataset: Dataset, batch_size: int
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        indices = list(
-            torch.randint(low=0, high=len(dataset), size=(batch_size,)).long()
-        )
-        return dataset[indices]
+        indices = torch.randint(low=0, high=len(dataset), size=(batch_size,)).long()
+        batch = [dataset[i] for i in indices]
+        input_ids, attention_masks = zip(*batch)
+        return torch.stack(input_ids), torch.stack(attention_masks)
 
     def train_iter(
         self,
@@ -123,14 +123,12 @@ class MarioGPTTrainer:
     ):
         device = accelerator.device
         total_train_loss = 0
-        indices = list(
-            torch.randint(low=0, high=len(train_dataset), size=(batch_size,)).long()
-        )
 
-        batch = train_dataset[indices]
-        b_input_ids = batch[0].view(batch_size, -1).to(device)
-        b_labels = batch[0].view(batch_size, -1).to(device)
-        attention_masks = batch[1].to(device)
+        # Use the new sampling method
+        b_input_ids, attention_masks = self.sample_from_dataset(train_dataset, batch_size)
+        b_input_ids = b_input_ids.view(batch_size, -1).to(device)
+        b_labels = b_input_ids.clone()
+        attention_masks = attention_masks.to(device)
 
         encoder_hidden_states = None
         str_levels = []
