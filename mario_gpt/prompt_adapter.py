@@ -96,3 +96,95 @@ class PromptAdapter:
         new_prompt = self.adapt_prompt(prompt_base)
 
         return new_prompt
+    
+
+class PromptSplitter:
+    def __init__(self, llm, max_level_size: int = 4, DEFAULT_MODEL: str = "llama-3.1-3b-preview"):
+        if not llm:
+            raise ValueError("LLM is required")
+        self.llm = llm
+        self.max_level_size = max_level_size
+        self.DEFAULT_MODEL = DEFAULT_MODEL
+
+
+    def full_thingy(self, prompt: str, use_groq: bool = False):
+        instruction = f"""You are an AI that segments a Mario level generation request into multiple steps, preserving all original information while structuring a logical sequence.
+
+        ### **Guidelines:**
+        1. **Determine the correct number of segments internally** – Identify major transitions in difficulty, enemies, obstacles, power-ups, or mechanics. Each major shift should correspond to a new sentence.
+        2. **Preserve all original information** – No details from the input prompt should be removed or inferred.
+        3. **Maintain logical progression** – If the prompt describes a sequence, each sentence must follow a natural order.
+        4. **Carry forward elements when needed** – If a level adds enemies or changes difficulty, ensure previous elements persist unless explicitly replaced.
+        5. **Each sentence must be self-contained** – The segments should be complete sentences that make sense independently.
+        6. **Strict output format** – Return only the segmented sentences in a structured list format. No explanations or additional text.
+
+        ---
+
+        ### **Examples:**
+        #### **Example 1**
+        **Input:**  
+        Prompt: "Create a level that starts off easy with a couple of powerups and coins, but then ramps up into a difficult level filled with goombas and koopas."
+
+        **Output:**  
+        1. "Create a level with a couple of powerups and coins."  
+        2. "Create a level filled with goombas and koopas."
+
+        ---
+
+        #### **Example 2**
+        **Input:**  
+        Prompt: "Generate a level that has some goombas, and starts raising in difficulty adding koopas to the mix, and finally adds all types of enemies."
+
+        **Output:**  
+        1. "Generate a level that has some goombas."  
+        2. "Generate a difficult level that has goombas and koopas."  
+        3. "Generate a difficult level that has all types of enemies, including goombas and koopas."
+
+        ---
+
+        ### **Task**
+        Segment the following prompt into the appropriate number of sequential steps while maintaining all information.
+
+        **Input:**  
+        Prompt: "{prompt}"  
+
+        **Output:**  
+        """
+            
+        if use_groq:
+            response = self.llm.chat.completions.create(
+                model=self.DEFAULT_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a prompt splitter."},
+                    {"role": "user", "content": instruction + prompt}
+                ],
+                temperature=0.7
+            )
+            output_text = response.choices[0].message.content.strip()
+        else:   
+            output_text = self.llm(instruction + prompt).strip()
+
+        sections = [line.strip() for line in output_text.split("\n") if line.strip()]
+        return [s for s in sections if s.startswith(tuple(f"{i}." for i in range(1, self.max_level_size + 1)))]
+
+    def generate_levels(self, prompt: str, mario_lm) -> list:
+        num_sections = self.analyze_prompt_sections(prompt)
+        section_prompts = self.split_prompt(prompt, num_sections)
+        
+        current_level = mario_lm.sample(
+            prompts=section_prompts[0],
+            num_steps=1400,
+            temperature=2.0,
+            use_tqdm=True
+        )
+        
+        for prompt in section_prompts[1:]:
+            current_level = mario_lm.sample(
+                seed=current_level,
+                prompts=prompt,
+                num_steps=1400,
+                temperature=2.0,
+                use_tqdm=True
+            )
+            
+        return current_level
