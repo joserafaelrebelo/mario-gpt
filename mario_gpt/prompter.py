@@ -16,10 +16,10 @@ STATISTICS = {
     "pipe": np.array([1.0, 2.0, 5.0]),
     "ground block": np.array([24.0, 87.0, 150.0]),
 
-    "hard block": np.array([1.0, 12.0, 26.0]),
-    "coin block": np.array([1.0, 2.0, 7.0]),
+    "hard block": np.array([1.0, 11.0, 23.0]),
+    "coin block": np.array([1.0, 2.0, 6.0]),
     "breakable block": np.array([1.0, 19.0, 38.0]),
-    "coin": np.array([1.0, 6.0, 12.0]),
+    "coin": np.array([1.0, 5.0, 10.0]),
     "powerup": np.array([1.0, 2.0, 3.0]),
     "goomba": np.array([1.0, 2.0, 5.0]),
     "koopa": np.array([1.0, 3.0, 6.0]),
@@ -106,9 +106,6 @@ class Prompter:
         plural = "enemies" if entity_type == "enemy" else f"{entity_type}s"
         return f"{keyword} {plural}", keyword
             
-        # Handle special plural cases
-        plural = "enemies" if entity_type == "enemy" else f"{entity_type}s"
-        return f"{keyword} {plural}", keyword
 
     def elevation_prompt(self, flattened_level: str, level: str):
         top_levels = level[:6]
