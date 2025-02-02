@@ -106,137 +106,6 @@ class PromptSplitter:
         self.max_level_size = max_level_size
         self.DEFAULT_MODEL = DEFAULT_MODEL
 
-    def analyze_prompt_sections(self, prompt: str, use_groq: bool = False) -> int:
-        instruction = f"""You are an AI that determines how many sentences are needed to segment a Mario level generation request into distinct sequential steps.
-
-            ### **Guidelines:**
-            1. **Detect Progression Clearly** – If the prompt introduces changes in difficulty, enemies, obstacles, power-ups, or mechanics, count each change as a new sentence.
-            2. **Always Split When New Elements Appear** – If an additional feature (e.g., a new enemy, new power-ups, terrain shifts) is introduced, it **must** start a new sentence.
-            3. **Do Not Merge Distinct Phases** – If a level starts easy and later becomes difficult, those are two separate phases and should be **split into at least two sentences**.
-            4. **Avoid Under-Segmentation** – Do not condense separate ideas into a single sentence. Err on the side of **splitting too much rather than too little**.
-            5. **Minimum of 1 Sentence** – If the prompt describes a single idea, return `1`. Otherwise, assign a logical segmentation.
-            6. **Respect the Level Size Limit** – The maximum level size is {self.max_level_size}. Ensure segmentations do not suggest exceeding this limit.
-            7. **Return ONLY a number** – Output must be a **single integer** between 1 and {self.max_level_size}, with no additional words, text, or explanations.
-            
-            ---
-            
-            ### **Examples:**
-            #### **Example 1**
-            **Input:**  
-            "Create a level that starts off easy with a couple of powerups and coins, but then ramps up into a difficult level filled with goombas and koopas."
-            
-            **Output:**  
-            2
-            
-            ---
-            
-            #### **Example 2**
-            **Input:**  
-            "Generate a level that has some goombas, and starts raising in difficulty adding koopas to the mix, and finally adds all types of enemies."
-            
-            **Output:**  
-            3
-            
-            ---
-            
-            #### **Example 3**
-            **Input:**  
-            "Create a level that starts with many coin blocks, then transitions to an enemy filled section, and finally ends with ."
-            
-            **Output:**  
-            3
-
-            ---
-
-            ### **Task**
-            Analyze the following prompt and return the number of sentences needed for proper segmentation while ensuring the level size does not exceed {self.max_level_size}.  
-
-            **Input:**  
-            "{prompt}"  
-
-            **Output:**
-            """
-
-        if use_groq:
-            response = self.llm.chat.completions.create(
-                model="llama-3.2-3b-preview",
-                messages=[
-                    {"role": "system", "content": "You are a prompt analyzer."},
-                    {"role": "user", "content": instruction + prompt}
-                ],
-                temperature=0.7
-            )
-            content = response.choices[0].message.content
-            return content
-
-        else:
-            response = self.llm(instruction + prompt)
-            return min(self.max_level_size, max(1, int(response.strip())))
-
-    def split_prompt(self, prompt: str, num_sections: int, use_groq: bool = False):
-        if num_sections == 1:
-            return [prompt]
-            
-        instruction = f"""You are an AI that segments a Mario level generation request into multiple steps, preserving all original information while structuring a logical sequence. 
-
-        ### **Guidelines:**
-        1. **No information is lost** – Every segment must retain details from the original prompt.
-        2. **Maintain logical progression** – If the prompt describes a sequence (e.g., increasing difficulty), the segments should logically build upon one another.
-        3. **Entities should persist when necessary** – If elements are cumulative (e.g., difficulty increases, more enemies added), they should carry over. If there’s a transition (e.g., power-ups → enemies), reflect that.
-        4. **Each sentence must be self-contained** – The segments should be complete sentences that make sense independently.
-        5. **Strict output format** – Return only the segmented sentences, no explanations or extra text.
-
-        ### **Examples:**
-        #### **Example 1**
-        **Input:**
-        Prompt: "Create a level that starts off easy with a couple of powerups and coins, but then ramps up into a difficult level filled with goombas and koopas."
-        Number of sentences: 2
-
-        **Output:**
-        1. "Create a level with a couple of powerups and coins."
-        2. "Create a level filled with goombas and koopas."
-
-        ---
-
-        #### **Example 2**
-        **Input:**
-        Prompt: "Generate a level that has some goombas, and starts raising in difficulty adding koopas to the mix, and finally adds all types of enemies."
-        Number of sentences: 3
-
-        **Output:**
-        1. "Generate a level that has some goombas."
-        2. "Generate a difficult level that has goombas and koopas."
-        3. "Generate a difficult level that has all types of enemies, including goombas and koopas."
-
-        ---
-
-        ### **Task**
-        Segment the following prompt into exactly {num_sections} sentences:
-
-        **Input:**
-        Prompt: "{prompt}"
-        Number of sentences: {num_sections}
-
-        **Output:**
-        """
-        
-        if use_groq:
-            response = self.llm.chat.completions.create(
-                model="llama-3.2-3b-preview",
-                messages=[
-                    {"role": "system", "content": "You are a prompt splitter."},
-                    {"role": "user", "content": instruction + prompt}
-                ],
-                temperature=0.7
-            )
-            
-            sections = response.choices[0].message.content.strip().split('\n')
-
-        else:   
-            response = self.llm(instruction + prompt)
-            sections = response.strip().split('\n')
-
-        return sections[:num_sections]
 
     def full_thingy(self, prompt: str, use_groq: bool = False):
         instruction = f"""You are an AI that segments a Mario level generation request into multiple steps, preserving all original information while structuring a logical sequence.
@@ -281,20 +150,10 @@ class PromptSplitter:
 
         **Output:**  
         """
-
-        if use_groq:
-            response = self.llm.chat.completions.create(
-                model="llama-3.2-3b-preview",
-                messages=[
-                    {"role": "system", "content": "You are a prompt splitter."},
-                    {"role": "user", "content": instruction + prompt}
-                ],
-                temperature=0.7
-            )
             
         if use_groq:
             response = self.llm.chat.completions.create(
-                model="llama-3.2-3b-preview",
+                model=self.DEFAULT_MODEL,
                 messages=[
                     {"role": "system", "content": "You are a prompt splitter."},
                     {"role": "user", "content": instruction + prompt}
@@ -306,7 +165,7 @@ class PromptSplitter:
             output_text = self.llm(instruction + prompt).strip()
 
         sections = [line.strip() for line in output_text.split("\n") if line.strip()]
-        return [s for s in sections if s.startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9."))]
+        return [s for s in sections if s.startswith(tuple(f"{i}." for i in range(1, self.max_level_size + 1)))]
 
     def generate_levels(self, prompt: str, mario_lm) -> list:
         num_sections = self.analyze_prompt_sections(prompt)
