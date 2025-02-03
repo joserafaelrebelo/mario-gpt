@@ -4,6 +4,8 @@ import random
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from scipy import stats
+from scipy.interpolate import splprep, splev
 import torch
 from scipy import stats
 from transformers import pipeline
@@ -143,6 +145,61 @@ class Prompter:
         d["coin"] = stats.mstats.mquantiles(coin_counts, [0.33, 0.66, 0.95])
         d["powerup"] = stats.mstats.mquantiles(powerup_counts, [0.33, 0.66, 0.95])
         return d
+    
+
+    def calculate_enemy_powerup_factor(self, level_data):
+        # Define enemies and power-ups
+        ENEMIES = {"g", "G", "k", "K", "r", "R", "y", "B", "b"}
+        POWER_UPS = {"U", "?", "1"}
+
+        enemy_count = sum(row.count(e) for e in ENEMIES for row in level_data)
+        powerup_count = sum(row.count(p) for p in POWER_UPS for row in level_data)
+        
+        # Define weights for difficulty adjustment
+        enemy_weight = 0.5  
+        powerup_weight = 0.3  
+
+        # print(f"Enemy Count: {enemy_count}, Power-Up Count: {powerup_count}")
+        
+        return enemy_weight * enemy_count - powerup_weight * powerup_count
+    
+    def process_level_difficulty(self, level_data):
+        points = [(col_idx, row_idx) for row_idx, row in enumerate(level_data) for col_idx, char in enumerate(row) if char == 'P']
+        
+        if not points:
+            return "Unknown"
+        
+        points = sorted(points, key=lambda p: p[0])
+        points = np.array(points)
+        x, y = points[:, 0], points[:, 1]
+        
+        try:
+            tck, u = splprep([x, y], s=3)
+        except Exception as e:
+            print(f"Skipping segment due to insufficient points: {e}")
+            return "Unknown"
+        
+        unew = np.linspace(0, 1, 1000)
+        smooth_path = splev(unew, tck)
+        xs, ys = smooth_path
+        
+        dx = np.gradient(xs, unew)
+        dy = np.gradient(ys, unew)
+        ddx = np.gradient(dx, unew)
+        ddy = np.gradient(dy, unew)
+        curvature = np.abs(dx * ddy - dy * ddx) / (dx**2 + dy**2)**1.5
+        
+        curvature_variation = np.trapz(np.abs(curvature), unew)
+        vertical_range = np.max(ys) - np.min(ys)
+        avg_slope = np.mean(np.abs(dy / (dx + 1e-6)))
+        
+        D = 0.2 * curvature_variation + 1.0 * vertical_range + 1.5 * avg_slope
+
+        # Add enemy/power-up factor
+        difficulty_factor = self.calculate_enemy_powerup_factor(level_data)
+        D += difficulty_factor  # Increase or decrease D based on enemies and power-ups
+
+        return "Easy" if D < 3.0 else "Medium" if D < 9 else "Hard"
 
     def __call__(
         self, level: torch.Tensor = None, sample_prompt: bool = False
@@ -159,8 +216,11 @@ class Prompter:
 
             # Generate prompts for all entity types
             for entity_type in self.entity_chars.keys():
-                prompt, keyword = self.generate_prompt(entity_type, flattened_level, str_level)
-                prompt_dict[entity_type] = prompt
+                count = sum(flattened_level.count(char) for char in self.entity_chars[entity_type])
+                prompt_dict[entity_type] = f"{count} {entity_type}s"
+            
+            difficulty = self.process_level_difficulty(str_level)
+            prompt_dict["difficulty"] = difficulty
 
             # Handle elevation separately
             elevation_prompt, elevation_keyword = self.elevation_prompt(flattened_level, str_level)
