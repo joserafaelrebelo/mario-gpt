@@ -12,7 +12,7 @@ from mario_gpt.dataset import MarioDataset
 from mario_gpt.utils import view_level
 
 STATISTICS = {
-    "enemy": np.array([1.0, 2.0, 3.0]),
+    "special enemy": np.array([1.0, 2.0, 3.0]),
     "pipe": np.array([1.0, 2.0, 5.0]),
     "ground block": np.array([24.0, 87.0, 150.0]),
 
@@ -53,7 +53,7 @@ class Prompter:
 
         self.entity_chars = {
             "pipe": ["<>", "()"],
-            "enemy": ["E", "B", "y"],
+            "special enemy": ["E", "B", "y"],
             "ground block": ["X"], # Ground blocks
             "hard block": ["#"], # Hard blocks
             "coin block": ["Q", "!", "2", "C"], # Interactible Blocks -> Question Block (Empty), Invisible Coin Block, Coin Brick Block
@@ -103,7 +103,7 @@ class Prompter:
             keyword = keywords[threshold]
             
         # Handle special plural cases
-        plural = "enemies" if entity_type == "enemy" else f"{entity_type}s"
+        plural = "special enemies" if entity_type == "special enemy" else f"{entity_type}s"
         return f"{keyword} {plural}", keyword
             
 
@@ -131,7 +131,7 @@ class Prompter:
 
     def dataset_statistics(self, dataset: MarioDataset):
         counts = {
-            "enemy": [],
+            "special enemy": [],
             "pipe": [],
             "ground block": [],
             "hard block": [],
@@ -196,7 +196,7 @@ class Prompter:
             # Generate random prompts for all entity types
             for entity_type in self.entity_chars.keys():
                 keywords = ["no", "little", "some", "many"]
-                if entity_type == "block":
+                if entity_type == "ground block":
                     keywords = ["little", "little", "some", "many"]
                 keyword = random.choice(keywords)
                 prompt_dict[entity_type] = f"{keyword} {entity_type}s"
