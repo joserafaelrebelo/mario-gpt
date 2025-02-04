@@ -191,8 +191,8 @@ NEW_TOKENS = [
     'R', # Winged Red Koopa
     'y', # Spiky
 
-    "B", # Bullet Billington head
-    "b", # Bullet Billington body
+    "B", # Bullet Bill head
+    "b", # Bullet Bill body
     "<", # Top left pipe
     ">", # Top right pipe
     "(", # Top left pipe with plant

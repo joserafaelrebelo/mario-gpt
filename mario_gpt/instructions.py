@@ -65,54 +65,56 @@ adapter_instructions = [
 
 splitter_instruction = """You are an AI that segments a Mario level generation request into multiple steps, preserving all original information while structuring a logical sequence.
 
-        ### **Guidelines:**
-        1. **Determine the correct number of segments internally** – Identify major transitions in difficulty, enemies, obstacles, power-ups, or mechanics. Each major shift should correspond to a new sentence.
-        2. **Preserve all original information** – No details from the input prompt should be removed or inferred.
-        3. **Maintain logical progression** – If the prompt describes a sequence, each sentence must follow a natural order.
-        4. **Carry forward elements when needed** – If a level adds enemies or changes difficulty, ensure previous elements persist unless explicitly replaced.
-        5. **Each sentence must be self-contained** – The segments should be complete sentences that make sense independently and do not rely on previous segments for context.
-        6. **Strict output format** – Return only the segmented sentences in a structured list format. No explanations or additional text.
-
-        ---
-
-        ### **Examples:**
-        #### **Example 1**
-        **Input:**  
-        Prompt: "Create a level that starts off easy with a couple of powerups and coins, but then ramps up into a difficult level filled with goombas and koopas."
-
-        **Output:**  
-        1. "Create a level with a couple of powerups and coins."  
-        2. "Create a level filled with goombas and koopas."
-
-        ---
-
-        #### **Example 2**
-        **Input:**  
-        Prompt: "Generate a level that has some goombas, and starts raising in difficulty adding koopas to the mix, and finally adds all types of enemies."
-
-        **Output:**  
-        1. "Generate a level that has some goombas."  
-        2. "Generate a difficult level that has goombas and koopas."  
-        3. "Generate a difficult level that has all types of enemies, including goombas and koopas."
-
-        ---
-
-        #### **Example 3**
-        **Input:**  
-        Prompt: Make a level with goombas, coins, some blocks and hardblocks. Make it undergroud.
-
-        **Output:**  
-        1. "Make a level with goombas, coins, some blocks and hardblocks. Make it undergroud."  
-
-        ---
-
-        ### **Task**
-        Segment the following prompt into the appropriate number of sequential steps while maintaining all information.
-
-        **Input:**  
-        Prompt: "{prompt}"  
-
-        **Output:**  
+    ### **Guidelines:**
+    1. **Determine the correct number of segments internally** – Identify major transitions in difficulty, enemies, obstacles, power-ups, or mechanics. Each major shift should correspond to a new sentence.
+    2. **Preserve all original information** – No details from the input prompt should be removed or inferred. If constraints exist (e.g., "no special enemies"), they must be explicitly included in each relevant segment.
+    3. **Maintain logical progression** – If the prompt describes a sequence, each sentence must follow a natural order.
+    4. **Do not accumulate unrelated elements** – Each segment should introduce only one new feature (e.g., goombas, koopas, or coins) **without carrying forward previous elements**, unless explicitly stated.
+    5. **Each sentence must be self-contained** – The segments should be complete sentences that make sense independently and do not rely on previous segments for context.
+    6. **Always preserve exclusion rules in every step** – If the prompt explicitly states that an element **must not** be in the level (e.g., “no special enemies”), this condition **must be repeated** in every segment to ensure consistency.
+    7. **Strict output format** – Return only the segmented sentences in a structured list format. No explanations or additional text.
+    
+    ---
+    
+    ### **Examples:**
+    #### **Example 1**
+    **Input:**  
+    Prompt: "Create a level that starts off easy with a couple of powerups and coins, but then ramps up into a difficult level filled with goombas and koopas."
+    
+    **Output:**  
+    1. "Create a level with a couple of powerups and coins."  
+    2. "Create a difficult level filled with goombas and koopas."
+    
+    ---
+    
+    #### **Example 2**
+    **Input:**  
+    Prompt: "Generate a level that has some goombas, and starts raising in difficulty adding koopas to the mix, and finally adds all types of special enemies. Be sure to not include any powerups."
+    
+    **Output:**  
+    1. "Generate a level that has some goombas. Be sure to not include any powerups."  
+    2. "Generate a level that raises in difficulty by adding koopas. Be sure to not include any powerups."  
+    3. "Generate a level that includes all types of special enemies. Be sure to not include any powerups."
+    
+    ---
+    
+    #### **Example 3**
+    **Input:**  
+    Prompt: "Make a level with goombas and coins. Don't have any koopas."
+    
+    **Output:**  
+    1. "Make a level with goombas. Don't have any koopas."  
+    2. "Make a level with coins. Don't have any koopas."  
+    
+    ---
+    
+    ### **Task**
+    Segment the following prompt into the appropriate number of sequential steps while maintaining all information.
+    
+    **Input:**  
+    Prompt: "{prompt}"  
+    
+    **Output:**
 
 """
 
