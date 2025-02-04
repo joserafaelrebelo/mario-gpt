@@ -6,7 +6,7 @@ import random
 
 
 class PromptAdapter:
-    def __init__(self, llm, prompter: Prompter = None):
+    def __init__(self, llm, prompter: Prompter = None, DEFAULT_MODEL: str = "llama-3.1-8b-instant"):
         """
         Initialize the PromptAdapter class with a specified LLM model.
 
@@ -16,9 +16,8 @@ class PromptAdapter:
         if not llm:
             raise ValueError("A valid LLM instance must be provided.")
         self.llm = llm
-
         self.prompter_base = prompter or Prompter()  
-
+        self.DEFAULT_MODEL = DEFAULT_MODEL
         self.prefixes = [
             "Generate levels with",
             "Create a level that has",
@@ -41,6 +40,28 @@ class PromptAdapter:
             "Construct a level featuring"
         ]
 
+    def remove_keyword(self, prompt: str) -> str:
+        pairs = [pair.strip() for pair in prompt.split(',')]
+
+        # Prob dist map
+        removal_options = [
+            (1, 7),    # 1% chance for 7 removals
+            (2, 5),    # 2% chance for 5 removals
+            (2, 6),    # 2% chance for 6 removals
+            (3, 4),    # 3% chance for 4 removals
+            (4, 1),    # 4% chance for 1 removal
+            (4, 2),    # 4% chance for 2 removals
+            (4, 3),    # 4% chance for 3 removals
+        ]
+
+        rand = random.random() * 100  
+        for prob, num_to_remove in removal_options:
+            if rand <= prob:
+                pairs = random.sample(pairs, len(pairs) - num_to_remove)
+                break
+            
+        return ', '.join(pairs)
+
     def prompt_adapter_instruction(self, instruction: str, input_text: str) -> str:
         """
         Returns a formatted instruction for the prompt adapter.
@@ -59,7 +80,7 @@ class PromptAdapter:
                 ### Evolved Prompt:
                 """
 
-    def adapt_prompt(self, base_prompt: str) -> str:
+    def adapt_prompt(self, base_prompt: str, use_groq: bool = False) -> str:
         """
         Converts structured prompts into a natural language phrase using the LLM.
 
@@ -69,19 +90,32 @@ class PromptAdapter:
         if not adapter_instructions:
             raise ValueError("Instructions list is empty or not defined.")
         
+        base_prompt = self.remove_keyword(base_prompt)
         selected_instruction = random.choice(adapter_instructions)  
-        combined_prompts = f"{random.choice(self.prefixes)} {base_prompt}"
-    
-        if random.random() < 0.96:
-            prompt_for_adapter = self.prompt_adapter_instruction(selected_instruction, combined_prompts)
-            generated_text = self.llm(prompt_for_adapter, max_length=1028, num_return_sequences=1)
-            return generated_text[0]["generated_text"].strip()
-        else:
+        combined_prompts = f"{random.choice(self.prefixes)} {base_prompt}".replace("little", "a few")
+
+        if random.random() >= 0.96: 
             return combined_prompts
 
+        prompt_for_adapter = self.prompt_adapter_instruction(selected_instruction, combined_prompts)
+
+        if use_groq:
+            response = self.llm.chat.completions.create(
+                model=self.DEFAULT_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a prompt rewriter."},
+                    {"role": "user", "content": prompt_for_adapter}
+                ],
+                temperature=0.7
+            )
+            return response.choices[0].message.content.strip()
+
+        generated_text = self.llm(prompt_for_adapter, max_length=1028, num_return_sequences=1)
+        return generated_text[0]["generated_text"].strip()
 
 
-    def new_prompter(self, level: list) -> str:
+
+    def new_prompter(self, level: list, use_groq: bool = False) -> str:
         """
         Generates a new prompter output based on the given level.
 
@@ -96,15 +130,14 @@ class PromptAdapter:
         level_tensor = tokenized_level['input_ids']
         flattened_tensor = level_tensor.view(-1)
         
-        prompt_base, _, _, _ = self.prompter_base(level=flattened_tensor)  # Generate the structured prompt
-        print(prompt_base)
-        new_prompt = self.adapt_prompt(prompt_base)
+        prompt_base, _, _ = self.prompter_base(level=flattened_tensor)  # Generate the structured prompt
+        new_prompt = self.adapt_prompt(prompt_base, use_groq)
 
         return new_prompt
     
 
 class PromptSplitter:
-    def __init__(self, llm, max_level_size: int = 4, DEFAULT_MODEL: str = "llama-3.1-3b-preview"):
+    def __init__(self, llm, max_level_size: int = 4, DEFAULT_MODEL: str = "llama-3.1-8b-instant"):
         if not llm:
             raise ValueError("LLM is required")
         self.llm = llm
