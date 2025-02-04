@@ -95,7 +95,7 @@ class PromptAdapter:
         combined_prompts = f"{random.choice(self.prefixes)} {base_prompt}".replace("little", "a few")
 
         if random.random() >= 0.96: 
-            return combined_prompts
+            return combined_prompts, combined_prompts
 
         prompt_for_adapter = self.prompt_adapter_instruction(selected_instruction, combined_prompts)
 
@@ -108,10 +108,10 @@ class PromptAdapter:
                 ],
                 temperature=0.7
             )
-            return response.choices[0].message.content.strip()
+            return response.choices[0].message.content.strip(), combined_prompts
 
         generated_text = self.llm(prompt_for_adapter, max_length=1028, num_return_sequences=1)
-        return generated_text[0]["generated_text"].strip()
+        return generated_text[0]["generated_text"].strip(), combined_prompts
 
 
 
@@ -131,9 +131,9 @@ class PromptAdapter:
         flattened_tensor = level_tensor.view(-1)
         
         prompt_base, _, _ = self.prompter_base(level=flattened_tensor)  # Generate the structured prompt
-        new_prompt = self.adapt_prompt(prompt_base, use_groq)
+        new_prompt, combined_prompt = self.adapt_prompt(prompt_base, use_groq)
 
-        return new_prompt
+        return new_prompt, prompt_base, combined_prompt
     
 
 class PromptSplitter:
