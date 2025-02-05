@@ -50,7 +50,9 @@ class MarioDataset(Dataset):
                 for file in files:
                     if file.endswith(".txt"):
                         with open(os.path.join(root, file), "r") as f:
-                            yield list("".join(f.readlines()))
+                            lines = f.readlines()
+                            if lines:  
+                                yield list("".join(lines[1:]))
 
         if tokenizer is None:
             tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
