@@ -45,13 +45,13 @@ class PromptAdapter:
 
         # Prob dist map
         removal_options = [
-            (1, 7),    # 1% chance for 7 removals
-            (2, 5),    # 2% chance for 5 removals
-            (2, 6),    # 2% chance for 6 removals
-            (3, 4),    # 3% chance for 4 removals
-            (4, 1),    # 4% chance for 1 removal
-            (4, 2),    # 4% chance for 2 removals
-            (4, 3),    # 4% chance for 3 removals
+            (2, 7),    # 2% chance for 7 removals
+            (4, 6),    # 4% chance for 6 removals
+            (4, 5),    # 4% chance for 5 removals
+            (6, 4),    # 6% chance for 4 removals
+            (10, 1),    # 10% chance for 1 removal
+            (10, 2),    # 10% chance for 2 removals
+            (10, 3),    # 10% chance for 3 removals
         ]
 
         rand = random.random() * 100  
