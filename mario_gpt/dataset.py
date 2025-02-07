@@ -127,6 +127,7 @@ class MarioDataset(Dataset):
 
         all_input_ids = torch.cat([data["input_ids"] for data in self.data])
         self.unique_tokens, self.unique_counts = all_input_ids.unique(return_counts=True)
+        self.input_ids = all_input_ids
         self.weighted_unique_counts = (
             1.0 / self.unique_counts / torch.sum(self.unique_counts)
         )
@@ -151,6 +152,14 @@ class MarioDataset(Dataset):
                 # if arange[-1] >= len(input_ids):
                     # print(f"Invalid range: {arange}, input_ids size: {len(input_ids)}")
                 out.append(arange)
+        return torch.stack(out)
+
+    def sample_indices(self, batch_size):
+        out = []
+        for _ in range(batch_size):
+            start_idx = np.random.randint(0, self.__len__() - self.context_len)
+            indices = torch.arange(start_idx, start_idx + self.context_len)
+            out.append(indices)
         return torch.stack(out)
 
     def __len__(self):
