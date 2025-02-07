@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 # from mario_gpt.level import FULL_LEVEL_STR_WITH_PATHS
+from mario_gpt.prompter import Prompter
 
 DEFAULT_MODEL = "distilgpt2"
 
@@ -45,6 +46,9 @@ class MarioDataset(Dataset):
         self.height = height
         self.sample_all_indices = sample_all_indices
 
+        level_tokenizer = AutoTokenizer.from_pretrained("shyamsn97/Mario-GPT2-700-context-length")
+        self.prompter_base = Prompter(level_tokenizer=level_tokenizer)
+
         def get_training_corpus():
             for root, _, files in os.walk(folder_path):
                 for file in files:
@@ -52,12 +56,28 @@ class MarioDataset(Dataset):
                         with open(os.path.join(root, file), "r") as f:
                             lines = f.readlines()
                             if lines:  
-                                yield list("".join(lines[1:]))
+                                level_text = "".join(lines[1:])
+
+                                def transform_to_list(input_string):
+                                    lines = input_string.strip().split('\n')
+                                    return lines
+
+                                level_list = transform_to_list(level_text)
+
+                                tokenized_level = self.prompter_base.level_tokenizer(level_list, return_tensors="pt")
+                                level_tensor = tokenized_level['input_ids']
+                                flattened_tensor = level_tensor.view(-1)
+                                prompt_base, _, _, _ = self.prompter_base(level=flattened_tensor)
+
+                                combined_text = f"{level_text} <sep> {prompt_base}"
+                                yield list(combined_text)
 
         if tokenizer is None:
             tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
+            tokenizer.add_special_tokens({"sep_token": "<sep>"})
 
         if getattr(tokenizer, "train_new_from_iterator", None) is not None:
+            print("Training tokenizer from iterator")
             self.tokenizer = tokenizer.train_new_from_iterator(
                 get_training_corpus(), 52000
             )
@@ -68,6 +88,9 @@ class MarioDataset(Dataset):
             )
         else:
             self.tokenizer = tokenizer
+
+        # Resize token embeddings to include <sep> token
+        self.tokenizer.model_max_length += 1
 
         self.data = []
         self.character_set = set()
