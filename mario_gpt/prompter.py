@@ -131,14 +131,20 @@ class Prompter:
             .view(1, -1)
         )
 
-    def dataset_statistics(self, dataset: MarioDataset):
-        enemy_counts = []
-        pipe_counts = []
-        block_counts = []
-        goomba_counts = []
-        koopa_counts = []
-        coin_counts = []
-        powerup_counts = []
+    def dataset_statistics(self, dataset):
+        counts = {
+            "special enemy": [],
+            "pipe": [],
+            "ground block": [],
+            "hard block": [],
+            "coin block": [],
+            "breakable block": [],
+            "goomba": [],
+            "koopa": [],
+            "coin": [],
+            "powerup": []
+        }
+        
         for i in range(len(dataset)):
             level, _ = dataset[i]
             str_level = self._flatten_level(view_level(level, dataset.tokenizer))
