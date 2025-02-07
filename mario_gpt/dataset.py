@@ -72,9 +72,9 @@ class MarioDataset(Dataset):
                                 combined_text = f"{level_text} <sep> {prompt_base}"
                                 yield list(combined_text)
 
-        if tokenizer is None:
-            tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
-            tokenizer.add_special_tokens({"sep_token": "<sep>"})
+        if self.tokenizer is None:
+            self.tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
+            self.tokenizer.add_special_tokens({"sep_token": "<sep>"})
 
         if getattr(tokenizer, "train_new_from_iterator", None) is not None:
             print("Training tokenizer from iterator")
