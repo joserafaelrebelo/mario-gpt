@@ -10,7 +10,7 @@ import torch
 from scipy import stats
 from transformers import pipeline
 
-from mario_gpt.dataset import MarioDataset
+# from mario_gpt.dataset import MarioDataset
 from mario_gpt.utils import view_level
 
 STATISTICS = {
@@ -51,7 +51,7 @@ class Prompter:
             self.statistics = STATISTICS
 
         self.entity_chars = {
-            "pipe": ["<>", "()"],
+            "pipe": [">", ")"],
             "enemy": ["E", "B", "y"],
             "block": ["X", "S", "Q", "!", "2", "C", "#"],
             "koopa": ["r", "R", "k", "K"],
@@ -108,7 +108,7 @@ class Prompter:
             .view(1, -1)
         )
 
-    def dataset_statistics(self, dataset: MarioDataset):
+    def dataset_statistics(self, dataset):
         enemy_counts = []
         pipe_counts = []
         block_counts = []
@@ -167,7 +167,7 @@ class Prompter:
         points = [(col_idx, row_idx) for row_idx, row in enumerate(level_data) for col_idx, char in enumerate(row) if char == 'P']
         
         if not points:
-            return "Unknown"
+            return ""
         
         points = sorted(points, key=lambda p: p[0])
         points = np.array(points)
@@ -177,7 +177,7 @@ class Prompter:
             tck, u = splprep([x, y], s=3)
         except Exception as e:
             print(f"Skipping segment due to insufficient points: {e}")
-            return "Unknown"
+            return ""
         
         unew = np.linspace(0, 1, 1000)
         smooth_path = splev(unew, tck)
@@ -219,8 +219,8 @@ class Prompter:
                 count = sum(flattened_level.count(char) for char in self.entity_chars[entity_type])
                 prompt_dict[entity_type] = f"{count} {entity_type}s"
             
-            difficulty = self.process_level_difficulty(str_level)
-            prompt_dict["difficulty"] = difficulty
+            # difficulty = self.process_level_difficulty(str_level)
+            # prompt_dict["difficulty"] = difficulty
 
             # Handle elevation separately
             elevation_prompt, elevation_keyword = self.elevation_prompt(flattened_level, str_level)

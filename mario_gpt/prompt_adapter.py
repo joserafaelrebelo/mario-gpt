@@ -130,11 +130,11 @@ class PromptAdapter:
             tokenized_level = self.prompter_base.level_tokenizer(level, return_tensors="pt")
             level_tensor = tokenized_level['input_ids']
             flattened_tensor = level_tensor.view(-1)
-            prompt_base, _, _ = self.prompter_base(level=flattened_tensor)
+            prompt_base, _, _, _ = self.prompter_base(level=flattened_tensor)
 
         # Check if level is already a tensor
         elif isinstance(level, torch.Tensor):
-            prompt_base, _, _ = self.prompter_base(level=level)
+            prompt_base, _, _, _ = self.prompter_base(level=level)
 
         else:
             raise TypeError("Level must be either a list or a tensor.")
