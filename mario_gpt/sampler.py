@@ -152,15 +152,33 @@ class GPTSampler:
     def step(
         self,
         seed: torch.Tensor,
-        encoder_hidden_states: torch.Tensor,
+        sep_prompt: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         with torch.no_grad():
-            attention_mask = torch.ones_like(seed).to(seed.device)
-            input_ids = seed
+            attention_mask = torch.ones_like(sep_prompt).to(seed.device)
+            # print('seed', seed)
+            # print('sep_prompt', sep_prompt)
+            # print(self.mario_lm.tokenizer.sep_token_id)
+            sep_token_id = self.mario_lm.tokenizer.sep_token_id
+            sep_token_tensor = torch.tensor([sep_token_id], device=seed.device)
+            # print('\n\n\n\n')
+            # print(seed.shape)
+            # print(sep_token_tensor.shape)
+            # print(sep_prompt.shape)
+            # print('\n\n\n\n')
+            # print(seed)
+            # print(sep_token_tensor)
+            # print(sep_prompt)
+            input_ids = torch.cat((seed, sep_token_tensor.unsqueeze(0), sep_prompt), dim=-1)
+            # a = 1/0
+            # input_ids = sep_prompt
+            # print('\n\n\n\n')
+            # print(input_ids)
+            # print(input_ids.shape)
+            # print('-------------------------------------------------------------')
             out = self.mario_lm.lm(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                encoder_hidden_states=encoder_hidden_states,
                 token_type_ids=None,
             )
             logits = out.logits.detach()
@@ -175,7 +193,7 @@ class GPTSampler:
                 next_token_scores = self.logits_warper(input_ids, next_token_scores)
                 probs = torch.nn.functional.softmax(next_token_scores, dim=-1)
                 next_tokens = torch.multinomial(probs, num_samples=1).squeeze(1)
-        return next_tokens, encoder_hidden_states
+        return next_tokens
 
     def sample(
         self,
@@ -203,25 +221,29 @@ class GPTSampler:
                 out_tensor = out_tensor.view(1, -1).repeat(len(prompts), 1)
             if encoder_hidden_states is None:
                 if prompts is not None:
+                    print('using prompt')
                     encoder_hidden_states = torch.stack(
                         [
-                            self.mario_lm.prompter.output_hidden(prompt)
+                            # self.mario_lm.prompter.output_hidden(prompt)
+                            self.mario_lm.tokenizer(f"<SEP> {prompt}", return_tensors="pt")["input_ids"].squeeze(0)
                             for prompt in prompts
                         ]
                     )
                 else:
+                    print('sampling prompt')
                     encoder_hidden_states = torch.stack(
                         [
                             self.mario_lm.prompter(sample_prompt=True)[1]
                             for _ in range(seed.shape[0])
                         ]
                     )
+            # print('tokenized prompt shape', encoder_hidden_states.shape)
             encoder_hidden_states = encoder_hidden_states.to(
                 self.device
             )  # b x 1 x hidden_dim
-            encoder_hidden_states = encoder_hidden_states.view(
-                out_tensor.shape[0], 1, -1
-            )
+            # encoder_hidden_states = encoder_hidden_states.view(
+            #     out_tensor.shape[0], 1, -1
+            # )
             if not self.use_tqdm:
                 bar = np.arange(num_steps)
             else:
@@ -233,16 +255,29 @@ class GPTSampler:
                         diff = inp.shape[-1] % 14  # height of mario level
                         ctx = context_len + diff
                         inp = inp[:, -ctx:] * 1
-                    next_tokens, encoder_hidden_states = self.step(
+                    # print('inp shape to step',inp.shape)
+                    # print('inp', inp)
+                    # print('sep_prompt shape to step',encoder_hidden_states)
+                    next_tokens = self.step(
                         inp,
-                        encoder_hidden_states=encoder_hidden_states,
+                        sep_prompt=encoder_hidden_states,
                     )
+                    # print('next tokens shape', next_tokens.shape)
+                    # print('out_tensor')
+                    # print(out_tensor.shape)
+                    # print(out_tensor)
+                    # print('next_tokens')
+                    # print(next_tokens.shape)
+                    # print(next_tokens)
                     out_tensor = torch.cat(
                         [out_tensor, next_tokens.unsqueeze(-1)], dim=-1
                     )
                     if self.use_tqdm:
-                        bar.set_description(
-                            f"shape: {inp.shape}, {out_tensor.shape} first: {inp[0][0]}, last: {out_tensor[0][-1]}"
+                        bar.set_postfix(
+                            shape=inp.shape,
+                            out_shape=out_tensor.shape,
+                            first_token=inp[0][0].item(),
+                            last_token=out_tensor[0][-1].item(),
                         )
             if self.use_tqdm:
                 bar.close()

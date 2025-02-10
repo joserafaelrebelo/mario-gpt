@@ -61,11 +61,11 @@ class MarioGPT(BaseMarioLM):
         if path == "random":
             print("Initializing random weights...")
             config = AutoConfig.from_pretrained(
-                self.BASE_LM_PATH, **{**lm_kwargs, "add_cross_attention": True}
+                self.BASE_LM_PATH, **{**lm_kwargs}#, "add_cross_attention": True}
             )
             return AutoModelWithLMHead.from_config(config)
         return AutoModelWithLMHead.from_pretrained(
-            path, **{**lm_kwargs, "add_cross_attention": True}
+            path, **{**lm_kwargs}#, "add_cross_attention": True}
         )
 
     def load_pretrained_tokenizer(

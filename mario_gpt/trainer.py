@@ -17,6 +17,7 @@ from transformers import AdamW, PreTrainedModel, get_linear_schedule_with_warmup
 
 from mario_gpt.dataset import MarioDataset
 from mario_gpt.lm import BaseMarioLM, MarioLM
+from accelerate.utils import DistributedType, LoggerType
 
 
 @dataclass
@@ -92,7 +93,8 @@ class MarioGPTTrainer:
         return Accelerator(
             mixed_precision=config.mixed_precision,
             gradient_accumulation_steps=config.gradient_accumulation_steps,
-            log_with="tensorboard",
+            #log_with="tensorboard,
+            log_with=["wandb", LoggerType.TENSORBOARD],
             project_dir=config.output_dir,
         )
 
@@ -126,28 +128,61 @@ class MarioGPTTrainer:
 
         # Use the new sampling method
         b_input_ids, attention_masks = self.sample_from_dataset(train_dataset, batch_size)
-        b_input_ids = b_input_ids.view(batch_size, -1).to(device)
-        b_labels = b_input_ids.clone()
-        attention_masks = attention_masks.to(device)
+        b_input_ids = b_input_ids.view(batch_size, -1)#.to(device)
+        # b_labels = b_input_ids.clone()
+        # attention_masks = attention_masks.to(device)
 
         encoder_hidden_states = None
         str_levels = []
-        encoder_hidden_states = []
-        for level in b_input_ids:
-            _, encoder_hidden_state, _, str_level = self.mario_lm.prompter(level)
+        # encoder_hidden_states = []
+        cat_input_ids = []
+        cat_attention_masks = []
+        for level, attention_mask in zip(b_input_ids, attention_masks):
+            prompt, _, str_level = self.mario_lm.prompter(level)
             str_levels.append(str_level)
-            encoder_hidden_states.append(encoder_hidden_state)
-        encoder_hidden_states = torch.stack(encoder_hidden_states, dim=0).view(
+            # encoder_hidden_states.append(encoder_hidden_state)
+            tokenized_prompt = self.mario_lm.tokenizer(f"<sep> {prompt}", return_tensors="pt")
+            # print('PROMPT:', prompt)
+            # print()
+            # print()
+            # print('STR LEVEL:', str_level)
+            # print('level')
+            # print(level.shape)
+            # print(level)
+            # print('tokenized_prompt')
+            # print(tokenized_prompt["input_ids"].squeeze(0).shape)
+            # print(tokenized_prompt["input_ids"].squeeze(0))
+            cat_input_ids.append(torch.cat((level, tokenized_prompt["input_ids"].squeeze(0)), dim=0))
+            cat_attention_masks.append(torch.cat((attention_mask, tokenized_prompt["attention_mask"].squeeze(0)), dim=0))
+
+        padding_token = self.mario_lm.tokenizer.pad_token_id
+        max_len_input_ids = max(len(t) for t in cat_input_ids)
+        padded_cat_input_ids = [
+                torch.cat([t, torch.tensor([padding_token] * (max_len_input_ids - len(t)))])
+                for t in cat_input_ids
+                ]
+        max_len_attn_masks = max(len(t) for t in cat_attention_masks)
+        padded_attn_masks = [
+                torch.cat([t, torch.tensor([0] * (max_len_attn_masks - len(t)))]) # these padded values in attn_masks are the padding token, maybe it can be zero?
+                for t in cat_attention_masks
+                ]
+        b_input_ids = torch.stack(padded_cat_input_ids, dim=0).view(
             batch_size, 1, -1
         )
-
+        # print(b_input_ids)
+        # a = 1/0
+        # b_input_ids = b_input_ids.to(device)
+        b_input_ids = b_input_ids.type(torch.long).to(device)
+        b_labels = b_input_ids.clone()
+        attention_masks = torch.stack(padded_attn_masks, dim=0).to(device)
+        # print(type(b_input_ids))
+        # a = 1/0
         with accelerator.accumulate(model):
             model.zero_grad()
             outputs = model(
                 input_ids=b_input_ids.to(device),
                 labels=b_labels,
                 attention_mask=attention_masks,
-                encoder_hidden_states=encoder_hidden_states,
                 token_type_ids=None,
             )
             loss = outputs.loss
@@ -176,7 +211,7 @@ class MarioGPTTrainer:
         if batch_size is None:
             batch_size = self.config.batch_size
 
-        self.accelerator.init_trackers("mario-gpt")
+        self.accelerator.init_trackers("mario-gpt-tce")
 
         checkpoint_path = self.config.output_dir
         logdir = os.path.abspath(self.accelerator.logging_dir)
@@ -223,9 +258,10 @@ class MarioGPTTrainer:
                             )
                             draw = ImageDraw.Draw(out.img)
                             draw.text((0, 0), prompt, (0, 0, 0))
-                            tracker = self.accelerator.get_tracker("tensorboard")
-                            tracker.add_image(
-                                "image", np.array(out.img), i, dataformats="HWC"
+                            
+                            tracker = self.accelerator.get_tracker("wandb")
+                            tracker.log_images(
+                                {"image": [wandb.Image(np.array(out.img), caption=f"rendered level at {i}")]}, i,
                             )
                     except Exception as e:
                         print("Failed to evaluate!", e)
