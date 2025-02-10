@@ -18,7 +18,7 @@ from transformers import AdamW, PreTrainedModel, get_linear_schedule_with_warmup
 from mario_gpt.dataset import MarioDataset
 from mario_gpt.lm import BaseMarioLM, MarioLM
 from accelerate.utils import DistributedType, LoggerType
-
+import wandb
 
 @dataclass
 class TrainingConfig:
@@ -246,7 +246,6 @@ class MarioGPTTrainer:
                         if self.config.mask_proportion <= 0.0:
                             (
                                 prompt,
-                                _,
                                 _,
                                 _,
                             ) = self.mario_lm.prompter(sample_prompt=True)
