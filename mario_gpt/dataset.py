@@ -67,23 +67,26 @@ class MarioDataset(Dataset):
                                 tokenized_level = self.prompter_base.level_tokenizer(level_list, return_tensors="pt")
                                 level_tensor = tokenized_level['input_ids']
                                 flattened_tensor = level_tensor.view(-1)
-                                prompt_base, _, _, _ = self.prompter_base(level=flattened_tensor)
+                                prompt_base, _, _ = self.prompter_base(level=flattened_tensor)
 
                                 combined_text = f"{level_text} <sep> {prompt_base}"
                                 yield list(combined_text)
 
-        if self.tokenizer is None:
+        if tokenizer is None:
             tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
-            tokenizer.add_special_tokens({"sep_token": "<sep>"})
 
         if getattr(tokenizer, "train_new_from_iterator", None) is not None:
             print("Training tokenizer from iterator")
-
+            tokenizer.add_special_tokens({"sep_token": "<sep>"})
+            tokenizer.add_special_tokens({"pad_token": "<pad>"})
             self.tokenizer = tokenizer.train_new_from_iterator(
                 get_training_corpus(), 52000
             )
         elif getattr(tokenizer, "train_from_iterator", None) is not None:
             self.tokenizer = PreTrainedTokenizerFast(tokenizer_object=tokenizer)
+            tokenizer.add_special_tokens({"sep_token": "<sep>"})
+            tokenizer.add_special_tokens({"pad_token": "<pad>"})
+
             self.tokenizer = self.tokenizer.train_new_from_iterator(
                 get_training_corpus(), 52000
             )
