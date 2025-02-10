@@ -14,6 +14,8 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ../:/mario-gpt
+      - ../../data:/data
+      - ../../training_outcomes:/training_outcomes
     working_dir: /mario-gpt
     environment:
       - DISPLAY=${DISPLAY}
